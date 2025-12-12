@@ -48,16 +48,50 @@ class MasterPasswordWindow(tk.Tk):
 
     def _unlock(self):
         """
-        Placeholder: unlock vault using entered password.
-        Logic will be added later.
+        Attempt to unlock an existing vault with the entered password.
         """
 
-        messagebox.showinfo("Info", "Unlock logic not implemented yet.")
+        password = self.password_var.get().strip()
+
+        if not password:
+            messagebox.showerror("Error", "Please enter a master password.")
+            return
+
+        try:
+            self.vault.load(password)
+        except FileNotFoundError:
+            messagebox.showerror("Error", "No vault found. Create a new one.")
+            return
+        except ValueError:
+            messagebox.showerror("Error", "Incorrect master password.")
+            return
+        except Exception as e:
+            messagebox.showerror("Error", f"Unexpected error: {e}")
+            return
+
+        # If we reach this point: loaded successfully
+        self.destroy()
+        self.on_unlock_callback(password)
+
 
     def _create_new(self):
         """
-        Placeholder: create a new vault using entered password.
-        Logic will be added later.
+        Create a new vault using the entered password.
         """
 
-        messagebox.showinfo("Info", "Create logic not implemented yet.")
+        password = self.password_var.get().strip()
+
+        if not password:
+            messagebox.showerror("Error", "Please enter a master password.")
+            return
+
+        try:
+            self.vault.create_new(password)
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not create vault: {e}")
+            return
+
+        messagebox.showinfo("Success", "Vault created successfully!")
+
+        self.destroy()
+        self.on_unlock_callback(password)
