@@ -78,14 +78,90 @@ class MainWindow(tk.Tk):
         self.delete_btn = ttk.Button(btn_frame, text="Delete", command=self._delete_account)
         self.delete_btn.grid(row=0, column=3, padx=5)
 
+        # Status Label (for clipboard countdown)
+        self.status_label = ttk.Label(right_frame, text="")
+        self.status_label.pack(anchor="w", pady=10)
+
+        self.account_list.bind("<<ListboxSelect>>", self._on_select_account)
+
+        self._refresh_account_list()
+
     def _copy_username(self):
-        messagebox.showinfo("Info", "Copy username not implemented yet.")
+        selection = self.account_list.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select an account first.")
+            return
+
+        index = selection[0]
+        account = self.vault.accounts[index]
+
+        import pyperclip
+        pyperclip.copy(account.username)
+
+        self.status_label.config(text="Username copied to clipboard.")
 
     def _copy_password(self):
-        messagebox.showinfo("Info", "Copy password not implemented yet.")
+        selection = self.account_list.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select an account first.")
+            return
+
+        index = selection[0]
+        account = self.vault.accounts[index]
+
+        from core import copy_password_safely
+
+        # Start safe clipboard copy with 20-second timeout
+        copy_password_safely(account.password, timeout=20, callback=self._update_clipboard_countdown)
+
+        # Immediate UI feedback
+        self.status_label.config(text="Password copied. Clipboard clearing in: 20s")
 
     def _edit_account(self):
         messagebox.showinfo("Info", "Edit account not implemented yet.")
 
     def _delete_account(self):
         messagebox.showinfo("Info", "Delete account not implemented yet.")
+
+    def _refresh_account_list(self):
+        """
+        Load account names into the Listbox.
+        """
+
+        self.account_list.delete(0, tk.END)
+
+        for account in self.vault.accounts:
+            self.account_list.insert(tk.END, account.name)
+
+    def _on_select_account(self, event):
+        """
+        Called when user selects an account from the list.
+        Displays account details on the right panel.
+        """
+
+        selection = self.account_list.curselection()
+        if not selection:
+            return
+
+        index = selection[0]
+        account = self.vault.accounts[index]
+
+        # Update the right-side labels
+        self.details_title.config(text=account.name)
+        self.username_label.config(text=f"Username: {account.username}")
+        self.password_label.config(text=f"Password: {'*' * len(account.password)}")
+        self.notes_label.config(text=f"Notes: {account.notes}")
+
+    def _update_clipboard_countdown(self, remaining_seconds):
+        """
+        Called every second by core.py to update countdown label.
+        """
+
+        if remaining_seconds > 0:
+            self.status_label.config(
+                text=f"Password copied. Clipboard clearing in: {remaining_seconds}s"
+            )
+        else:
+            self.status_label.config(
+                text="Clipboard cleared."
+            )
