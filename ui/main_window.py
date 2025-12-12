@@ -14,6 +14,9 @@ class MainWindow(tk.Tk):
 
         self.vault = vault
         self.master_password = master_password
+        self.password_visible = False
+        self.current_password_value = ""
+
 
         self.title("Password Vault")
         self.geometry("700x400")
@@ -38,6 +41,12 @@ class MainWindow(tk.Tk):
         # Main container frame
         container = ttk.Frame(self)
         container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # ===========================
+        # Status Bar (bottom)
+        # ===========================
+        self.status_bar = ttk.Label(self, text="", anchor="w")
+        self.status_bar.pack(side="bottom", fill="x", padx=10, pady=5)
 
         # ====================================
         # Left Side: Account List + Search Bar
@@ -70,8 +79,16 @@ class MainWindow(tk.Tk):
         self.username_label = ttk.Label(right_frame, text="Username: ")
         self.username_label.pack(anchor="w")
 
-        self.password_label = ttk.Label(right_frame, text="Password: ")
-        self.password_label.pack(anchor="w", pady=5)
+        # Password row (label + Show/Hide button)
+        pwd_frame = ttk.Frame(right_frame)
+        pwd_frame.pack(anchor="w", pady=5, fill="x")
+
+        self.password_label = ttk.Label(pwd_frame, text="Password: ")
+        self.password_label.pack(side="left")
+
+        self.show_hide_btn = ttk.Button(pwd_frame, text="Show", width=6, command=self._toggle_password_visibility)
+        self.show_hide_btn.pack(side="left", padx=10)
+
 
         self.notes_label = ttk.Label(right_frame, text="Notes: ")
         self.notes_label.pack(anchor="w", pady=5)
@@ -94,10 +111,6 @@ class MainWindow(tk.Tk):
 
         self.delete_btn = ttk.Button(btn_frame, text="Delete", command=self._delete_account)
         self.delete_btn.grid(row=0, column=4, padx=5)
-
-        # Status Label (for clipboard countdown)
-        self.status_label = ttk.Label(right_frame, text="")
-        self.status_label.pack(anchor="w", pady=10)
 
         self.account_list.bind("<<ListboxSelect>>", self._on_select_account)
 
@@ -123,7 +136,7 @@ class MainWindow(tk.Tk):
             self._refresh_account_list()
 
             # Clear status message
-            self.status_label.config(text="Account added successfully!")
+            self.status_bar.config(text="Account added successfully!")
 
     def _copy_username(self):
 
@@ -143,7 +156,7 @@ class MainWindow(tk.Tk):
         import pyperclip
         pyperclip.copy(account.username)
 
-        self.status_label.config(text="Username copied to clipboard.")
+        self.status_bar.config(text="Username copied to clipboard.")
 
     def _copy_password(self):
 
@@ -166,7 +179,7 @@ class MainWindow(tk.Tk):
         copy_password_safely(account.password, timeout=20, callback=self._update_clipboard_countdown)
 
         # Immediate UI feedback
-        self.status_label.config(text="Password copied. Clipboard clearing in: 20s")
+        self.status_bar.config(text="Password copied. Clipboard clearing in: 20s")
 
     def _edit_account(self):
 
@@ -194,7 +207,7 @@ class MainWindow(tk.Tk):
 
             # Refresh display
             self._refresh_account_list()
-            self.status_label.config(text="Account updated successfully!")
+            self.status_bar.config(text="Account updated successfully!")
 
     def _delete_account(self):
 
@@ -229,7 +242,7 @@ class MainWindow(tk.Tk):
         self.username_label.config(text="Username:")
         self.password_label.config(text="Password:")
         self.notes_label.config(text="Notes:")
-        self.status_label.config(text="Account deleted.")
+        self.status_bar.config(text="Account deleted.")
 
     def _refresh_account_list(self):
         """
@@ -264,7 +277,18 @@ class MainWindow(tk.Tk):
         # Update the right-side labels
         self.details_title.config(text=account.name)
         self.username_label.config(text=f"Username: {account.username}")
-        self.password_label.config(text=f"Password: {'*' * len(account.password)}")
+
+        # Store the raw password for toggling
+        self.current_password_value = account.password
+        self.password_visible = False
+
+        # Masked password
+        masked = "*" * len(account.password)
+        self.password_label.config(text=f"Password: {masked}")
+
+        # Reset button text
+        self.show_hide_btn.config(text="Show")
+
         self.notes_label.config(text=f"Notes: {account.notes}")
 
     def _update_clipboard_countdown(self, remaining_seconds):
@@ -273,11 +297,11 @@ class MainWindow(tk.Tk):
         """
 
         if remaining_seconds > 0:
-            self.status_label.config(
+            self.status_bar.config(
                 text=f"Password copied. Clipboard clearing in: {remaining_seconds}s"
             )
         else:
-            self.status_label.config(
+            self.status_bar.config(
                 text="Clipboard cleared."
             )
 
@@ -378,3 +402,23 @@ class MainWindow(tk.Tk):
         y = (screen_height // 2) - (height // 2)
 
         window.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _toggle_password_visibility(self):
+        from core import touch_activity
+        touch_activity()
+
+        # No account selected → do nothing
+        if not self.current_password_value:
+            return
+
+        if self.password_visible:
+            # Hide password
+            masked = "*" * len(self.current_password_value)
+            self.password_label.config(text=f"Password: {masked}")
+            self.show_hide_btn.config(text="Show")
+            self.password_visible = False
+        else:
+            # Show password
+            self.password_label.config(text=f"Password: {self.current_password_value}")
+            self.show_hide_btn.config(text="Hide")
+            self.password_visible = True
