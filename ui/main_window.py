@@ -38,15 +38,17 @@ class MainWindow(tk.Tk):
         start_auto_lock_timer()
 
     def _build_ui(self):
-        # Main container frame
-        container = ttk.Frame(self)
-        container.pack(fill="both", expand=True, padx=10, pady=10)
+        # Root layout
+        root = ttk.Frame(self)
+        root.pack(fill="both", expand=True)
 
-        # ===========================
-        # Status Bar (bottom)
-        # ===========================
-        self.status_bar = ttk.Label(self, text="", anchor="w")
+        # Status bar FIRST (fixed, always visible)
+        self.status_bar = ttk.Label(root, text="", anchor="w")
         self.status_bar.pack(side="bottom", fill="x", padx=10, pady=5)
+
+        # Main content AFTER (expands)
+        container = ttk.Frame(root)
+        container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # ====================================
         # Left Side: Account List + Search Bar
@@ -86,9 +88,16 @@ class MainWindow(tk.Tk):
         self.password_label = ttk.Label(pwd_frame, text="Password: ")
         self.password_label.pack(side="left")
 
-        self.show_hide_btn = ttk.Button(pwd_frame, text="Show", width=6, command=self._toggle_password_visibility)
-        self.show_hide_btn.pack(side="left", padx=10)
+        # Clickable Show/Hide text (starts hidden)
+        self.show_hide_label = tk.Label(pwd_frame, text="", fg="blue", cursor="hand2")
+        self.show_hide_label.pack(side="left", padx=10)
 
+        # Click to toggle
+        self.show_hide_label.bind("<Button-1>", self._toggle_password_visibility)
+
+        # Optional: underline on hover (feels like a real link)
+        self.show_hide_label.bind("<Enter>", lambda e: self.show_hide_label.config(underline=1))
+        self.show_hide_label.bind("<Leave>", lambda e: self.show_hide_label.config(underline=0))
 
         self.notes_label = ttk.Label(right_frame, text="Notes: ")
         self.notes_label.pack(anchor="w", pady=5)
@@ -241,6 +250,7 @@ class MainWindow(tk.Tk):
         self.details_title.config(text="Select an account")
         self.username_label.config(text="Username:")
         self.password_label.config(text="Password:")
+        self.show_hide_label.config(text="")
         self.notes_label.config(text="Notes:")
         self.status_bar.config(text="Account deleted.")
 
@@ -287,7 +297,7 @@ class MainWindow(tk.Tk):
         self.password_label.config(text=f"Password: {masked}")
 
         # Reset button text
-        self.show_hide_btn.config(text="Show")
+        self.show_hide_label.config(text="Show")
 
         self.notes_label.config(text=f"Notes: {account.notes}")
 
@@ -403,22 +413,19 @@ class MainWindow(tk.Tk):
 
         window.geometry(f"{width}x{height}+{x}+{y}")
 
-    def _toggle_password_visibility(self):
+    def _toggle_password_visibility(self, event=None):
         from core import touch_activity
         touch_activity()
 
-        # No account selected → do nothing
         if not self.current_password_value:
             return
 
         if self.password_visible:
-            # Hide password
             masked = "*" * len(self.current_password_value)
             self.password_label.config(text=f"Password: {masked}")
-            self.show_hide_btn.config(text="Show")
+            self.show_hide_label.config(text="Show")
             self.password_visible = False
         else:
-            # Show password
             self.password_label.config(text=f"Password: {self.current_password_value}")
-            self.show_hide_btn.config(text="Hide")
+            self.show_hide_label.config(text="Hide")
             self.password_visible = True
