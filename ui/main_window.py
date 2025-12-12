@@ -21,6 +21,17 @@ class MainWindow(tk.Tk):
 
         self._build_ui()
 
+        from core import register_auto_lock_callback, start_auto_lock_timer, set_auto_lock_timeout
+
+        # Set timeout (5 minutes = 300 seconds)
+        set_auto_lock_timeout(300)
+
+        # Register callback
+        register_auto_lock_callback(self._lock_vault)
+
+        # Start auto-lock timer
+        start_auto_lock_timer()
+
     def _build_ui(self):
         # Main container frame
         container = ttk.Frame(self)
@@ -37,6 +48,7 @@ class MainWindow(tk.Tk):
         search_label.pack(anchor="w")
 
         self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self._filter_accounts)
         search_entry = ttk.Entry(left_frame, textvariable=self.search_var)
         search_entry.pack(fill="x", pady=5)
 
@@ -90,7 +102,12 @@ class MainWindow(tk.Tk):
         self._refresh_account_list()
 
     def _add_account(self):
+
         from ui.entry_editor import EntryEditor
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
 
         editor = EntryEditor(self)
         self.wait_window(editor)
@@ -107,6 +124,12 @@ class MainWindow(tk.Tk):
             self.status_label.config(text="Account added successfully!")
 
     def _copy_username(self):
+
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
+
         selection = self.account_list.curselection()
         if not selection:
             messagebox.showwarning("Warning", "Please select an account first.")
@@ -121,6 +144,12 @@ class MainWindow(tk.Tk):
         self.status_label.config(text="Username copied to clipboard.")
 
     def _copy_password(self):
+
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
+
         selection = self.account_list.curselection()
         if not selection:
             messagebox.showwarning("Warning", "Please select an account first.")
@@ -138,6 +167,12 @@ class MainWindow(tk.Tk):
         self.status_label.config(text="Password copied. Clipboard clearing in: 20s")
 
     def _edit_account(self):
+
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
+
         selection = self.account_list.curselection()
         if not selection:
             messagebox.showwarning("Warning", "Please select an account to edit.")
@@ -160,6 +195,12 @@ class MainWindow(tk.Tk):
             self.status_label.config(text="Account updated successfully!")
 
     def _delete_account(self):
+
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
+
         selection = self.account_list.curselection()
         if not selection:
             messagebox.showwarning("Warning", "Please select an account to delete.")
@@ -204,12 +245,19 @@ class MainWindow(tk.Tk):
         Displays account details on the right panel.
         """
 
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
+
         selection = self.account_list.curselection()
         if not selection:
             return
 
-        index = selection[0]
-        account = self.vault.accounts[index]
+        selected_name = self.account_list.get(selection[0])
+
+        # Find matching account object
+        account = next(a for a in self.vault.accounts if a.name == selected_name)
 
         # Update the right-side labels
         self.details_title.config(text=account.name)
@@ -230,3 +278,50 @@ class MainWindow(tk.Tk):
             self.status_label.config(
                 text="Clipboard cleared."
             )
+
+    def _filter_accounts(self, *args):
+        """
+        Filter the account list based on the search field.
+        """
+
+        from core import touch_activity
+
+        # Reinitialize auto-lock timer on user activity
+        touch_activity()
+
+        query = self.search_var.get().strip().lower()
+
+        self.account_list.delete(0, tk.END)
+
+        for account in self.vault.accounts:
+            if query in account.name.lower():
+                self.account_list.insert(tk.END, account.name)
+
+    def _lock_vault(self):
+        """
+        Called automatically when inactivity timeout is reached.
+        Closes the main window and returns user to the master password screen.
+        """
+
+        messagebox.showinfo("Session Locked", "Your vault was locked due to inactivity.")
+
+        self.destroy()
+
+        # Relaunch master password window
+        from ui.master_password import MasterPasswordWindow
+        MasterPasswordWindow(
+            on_unlock_callback=self._reopen_after_lock,
+            vault=self.vault
+        ).mainloop()
+
+    def _reopen_after_lock(self, master_password):
+        """
+        Called after the user re-enters their password following auto-lock.
+        """
+
+        from vault import Vault
+        from ui.main_window import MainWindow
+
+        vault = Vault("vault.enc")
+        vault.load(master_password)
+        MainWindow(vault, master_password).mainloop()
