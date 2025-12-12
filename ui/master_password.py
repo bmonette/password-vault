@@ -20,6 +20,7 @@ class MasterPasswordWindow(tk.Tk):
         self.resizable(False, False)
 
         self._build_ui()
+        self._center_window(self, 380, 230)
 
     def _build_ui(self):
         # Title label
@@ -95,3 +96,12 @@ class MasterPasswordWindow(tk.Tk):
 
         self.destroy()
         self.on_unlock_callback(password)
+
+    def _center_window(self, window, width, height):
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+
+        window.geometry(f"{width}x{height}+{x}+{y}")
