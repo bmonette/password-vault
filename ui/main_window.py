@@ -20,6 +20,8 @@ class MainWindow(tk.Tk):
         self.resizable(False, False)
 
         self._build_ui()
+        self._build_menu()
+        self._center_window(self, 700, 400)
 
         from core import register_auto_lock_callback, start_auto_lock_timer, set_auto_lock_timeout
 
@@ -325,3 +327,54 @@ class MainWindow(tk.Tk):
         vault = Vault("vault.enc")
         vault.load(master_password)
         MainWindow(vault, master_password).mainloop()
+
+    def _build_menu(self):
+        menu_bar = tk.Menu(self)
+
+        # File menu (empty for now, expandable later)
+        file_menu = tk.Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label="Exit", command=self.destroy)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+
+        # Help menu
+        help_menu = tk.Menu(menu_bar, tearoff=0)
+        help_menu.add_command(label="About", command=self._open_about_window)
+        menu_bar.add_cascade(label="Help", menu=help_menu)
+
+        # Attach menu bar to window
+        self.config(menu=menu_bar)
+
+    def _open_about_window(self):
+        about = tk.Toplevel(self)
+        about.title("About Password Vault")
+        about.geometry("350x240")
+        about.resizable(False, False)
+
+        # Center the About window
+        self._center_window(about, 350, 240)
+
+        frame = ttk.Frame(about, padding=15)
+        frame.pack(fill="both", expand=True)
+
+        # Labels
+        ttk.Label(frame, text="Password Vault — Version 1.0", font=("Arial", 12, "bold")).pack(pady=(0, 10))
+        ttk.Label(frame, text="Created by: Benoit Monette").pack(anchor="w")
+        ttk.Label(frame, text="Email: benoitmonette80@gmail.com").pack(anchor="w", pady=(0, 10))
+        ttk.Label(frame, text="Website: https://foriloop.com").pack(anchor="w", pady=(0, 10))
+
+        ttk.Label(frame, text="A simple offline password manager built in Python.\n"
+                              "All data is encrypted locally using AES-GCM.",
+                  justify="left", wraplength=300).pack(anchor="w", pady=5)
+
+        ttk.Button(frame, text="Close", command=about.destroy).pack(pady=10)
+
+        about.grab_set()
+
+    def _center_window(self, window, width, height):
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+
+        x = (screen_width // 2) - (width // 2)
+        y = (screen_height // 2) - (height // 2)
+
+        window.geometry(f"{width}x{height}+{x}+{y}")
