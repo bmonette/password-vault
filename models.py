@@ -33,7 +33,6 @@ class Account:
             "category": self.category,
         }
 
-
     @staticmethod
     def from_dict(data: dict):
         """
