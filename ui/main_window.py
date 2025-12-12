@@ -66,17 +66,20 @@ class MainWindow(tk.Tk):
         btn_frame = ttk.Frame(right_frame)
         btn_frame.pack(pady=20)
 
+        self.add_btn = ttk.Button(btn_frame, text="Add", command=self._add_account)
+        self.add_btn.grid(row=0, column=0, padx=5)
+
         self.copy_user_btn = ttk.Button(btn_frame, text="Copy Username", command=self._copy_username)
-        self.copy_user_btn.grid(row=0, column=0, padx=5)
+        self.copy_user_btn.grid(row=0, column=1, padx=5)
 
         self.copy_pass_btn = ttk.Button(btn_frame, text="Copy Password", command=self._copy_password)
-        self.copy_pass_btn.grid(row=0, column=1, padx=5)
+        self.copy_pass_btn.grid(row=0, column=2, padx=5)
 
         self.edit_btn = ttk.Button(btn_frame, text="Edit", command=self._edit_account)
-        self.edit_btn.grid(row=0, column=2, padx=5)
+        self.edit_btn.grid(row=0, column=3, padx=5)
 
         self.delete_btn = ttk.Button(btn_frame, text="Delete", command=self._delete_account)
-        self.delete_btn.grid(row=0, column=3, padx=5)
+        self.delete_btn.grid(row=0, column=4, padx=5)
 
         # Status Label (for clipboard countdown)
         self.status_label = ttk.Label(right_frame, text="")
@@ -85,6 +88,23 @@ class MainWindow(tk.Tk):
         self.account_list.bind("<<ListboxSelect>>", self._on_select_account)
 
         self._refresh_account_list()
+
+    def _add_account(self):
+        from ui.entry_editor import EntryEditor
+
+        editor = EntryEditor(self)
+        self.wait_window(editor)
+
+        if editor.result:
+            # Add to vault
+            self.vault.accounts.append(editor.result)
+            self.vault.save(self.master_password)
+
+            # Refresh UI
+            self._refresh_account_list()
+
+            # Clear status message
+            self.status_label.config(text="Account added successfully!")
 
     def _copy_username(self):
         selection = self.account_list.curselection()
@@ -118,10 +138,55 @@ class MainWindow(tk.Tk):
         self.status_label.config(text="Password copied. Clipboard clearing in: 20s")
 
     def _edit_account(self):
-        messagebox.showinfo("Info", "Edit account not implemented yet.")
+        selection = self.account_list.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select an account to edit.")
+            return
+
+        index = selection[0]
+        account = self.vault.accounts[index]
+
+        from ui.entry_editor import EntryEditor
+        editor = EntryEditor(self, account=account)
+        self.wait_window(editor)
+
+        if editor.result:
+            # Update account in vault
+            self.vault.accounts[index] = editor.result
+            self.vault.save(self.master_password)
+
+            # Refresh display
+            self._refresh_account_list()
+            self.status_label.config(text="Account updated successfully!")
 
     def _delete_account(self):
-        messagebox.showinfo("Info", "Delete account not implemented yet.")
+        selection = self.account_list.curselection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select an account to delete.")
+            return
+
+        index = selection[0]
+        account = self.vault.accounts[index]
+
+        confirm = messagebox.askyesno(
+            "Confirm Delete",
+            f"Are you sure you want to delete '{account.name}'?"
+        )
+
+        if not confirm:
+            return
+
+        # Delete and save
+        del self.vault.accounts[index]
+        self.vault.save(self.master_password)
+
+        # Refresh UI
+        self._refresh_account_list()
+        self.details_title.config(text="Select an account")
+        self.username_label.config(text="Username:")
+        self.password_label.config(text="Password:")
+        self.notes_label.config(text="Notes:")
+        self.status_label.config(text="Account deleted.")
 
     def _refresh_account_list(self):
         """

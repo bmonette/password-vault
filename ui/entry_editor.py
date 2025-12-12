@@ -19,7 +19,7 @@ class EntryEditor(tk.Toplevel):
         self.result = None  # Will hold the new or updated Account object
 
         self.title("Edit Account" if account else "Add Account")
-        self.geometry("350x300")
+        self.geometry("350x380")
         self.resizable(False, False)
 
         self._build_ui()

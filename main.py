@@ -8,9 +8,6 @@ def open_main_window(master_password):
     vault = Vault("vault.enc")
     vault.load(master_password)
 
-    # TEMPORARY TEST DATA
-    vault.accounts.append(Account("TestAccount", "test@example.com", "12345"))
-
     MainWindow(vault, master_password).mainloop()
 
 
