@@ -1,10 +1,12 @@
 from ui.master_password import MasterPasswordWindow
+from ui.main_window import MainWindow
 from vault import Vault
 
 
 def open_main_window(master_password):
-    print("Vault unlocked with password:", master_password)
-    print("Next step: open the main window (UI coming next).")
+    vault = Vault("vault.enc")  # ensure the same filepath
+    vault.load(master_password)
+    MainWindow(vault, master_password).mainloop()
 
 
 if __name__ == "__main__":
