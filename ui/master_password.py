@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -44,8 +45,18 @@ class MasterPasswordWindow(tk.Tk):
         unlock_btn = ttk.Button(btn_frame, text="Unlock", command=self._unlock)
         unlock_btn.grid(row=0, column=0, padx=5)
 
-        create_btn = ttk.Button(btn_frame, text="Create New Vault", command=self._create_new)
-        create_btn.grid(row=0, column=1, padx=5)
+        self.create_btn = ttk.Button(btn_frame, text="Create New Vault", command=self._create_new)
+        self.create_btn.grid(row=0, column=1, padx=5)
+
+        if os.path.exists(self.vault.filepath):
+            self.create_btn.config(state="disabled")
+
+            info_label = ttk.Label(
+                self,
+                text="A vault already exists on this computer.",
+                foreground="gray"
+            )
+            info_label.pack(pady=5)
 
     def _unlock(self):
         """
