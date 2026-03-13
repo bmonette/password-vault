@@ -91,6 +91,14 @@ class MasterPasswordWindow(tk.Tk):
         Create a new vault using the entered password.
         """
 
+        if os.path.exists(self.vault.filepath):
+            messagebox.showerror(
+                "Vault Exists",
+                "A vault already exists on this computer.\n\n"
+                "Delete or rename the existing vault file before creating a new one."
+            )
+            return
+
         password = self.password_var.get().strip()
 
         if not password:
